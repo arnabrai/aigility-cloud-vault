@@ -1,54 +1,131 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import AppSidebar from "@/components/Sidebar";
 import ContentHeader from "@/components/ContentHeader";
 import FileGrid from "@/components/FileGrid";
 import FileList from "@/components/FileList";
 import FileDetails from "@/components/FileDetails";
 import { StorageItem } from "@/types/files";
-import { 
-  getAllItems, 
-  getItemsByPath, 
-  getFavoriteItems, 
-  getSharedItems, 
-  getRecentItems 
-} from "@/services/mockDataService";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
+import { getFilesAndFolders, getFavoriteFiles, getSharedFiles, getRecentFiles, convertToStorageItem, convertFolderToStorageItem } from "@/services/storageService";
+import { File, Folder } from "@/types/supabase";
+import UploadDialog from "@/components/UploadDialog";
+import CreateFolderDialog from "@/components/CreateFolderDialog";
+import { supabase } from "@/integrations/supabase/client";
 
 const Dashboard = () => {
   const [currentPath, setCurrentPath] = useState("/");
+  const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedItem, setSelectedItem] = useState<StorageItem | null>(null);
+  const [items, setItems] = useState<StorageItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
+  const [createFolderDialogOpen, setCreateFolderDialogOpen] = useState(false);
+  
   const { toast } = useToast();
+  const { user, isLoading } = useAuth();
+  const navigate = useNavigate();
 
-  const getItems = () => {
-    switch (currentPath) {
-      case "/favorites":
-        return getFavoriteItems();
-      case "/shared":
-        return getSharedItems();
-      case "/recent":
-        return getRecentItems();
-      default:
-        return getItemsByPath(currentPath);
+  useEffect(() => {
+    if (!isLoading && !user) {
+      navigate("/auth");
+    }
+  }, [user, isLoading, navigate]);
+
+  const fetchItems = async () => {
+    setLoading(true);
+    try {
+      let fetchedItems: StorageItem[] = [];
+      
+      if (currentPath === "/favorites") {
+        const favoriteFiles = await getFavoriteFiles();
+        fetchedItems = favoriteFiles.map(convertToStorageItem);
+      } else if (currentPath === "/shared") {
+        const sharedFiles = await getSharedFiles();
+        fetchedItems = sharedFiles.map(convertToStorageItem);
+      } else if (currentPath === "/recent") {
+        const recentFiles = await getRecentFiles(20);
+        fetchedItems = recentFiles.map(convertToStorageItem);
+      } else {
+        const { folders, files } = await getFilesAndFolders(currentPath);
+        
+        fetchedItems = [
+          ...folders.map(convertFolderToStorageItem),
+          ...files.map(convertToStorageItem)
+        ];
+      }
+      
+      setItems(fetchedItems);
+    } catch (error: any) {
+      toast({
+        title: "Error fetching files",
+        description: error.message || "An error occurred while fetching your files",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
-  const filteredItems = getItems().filter((item) =>
-    item.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  useEffect(() => {
+    if (user) {
+      fetchItems();
+    }
+  }, [currentPath, user]);
+
+  // Set up realtime subscriptions
+  useEffect(() => {
+    if (!user) return;
+
+    const channel = supabase
+      .channel('db-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'files'
+        },
+        () => {
+          fetchItems();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'folders'
+        },
+        () => {
+          fetchItems();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user, currentPath]);
 
   const handleNavigate = (path: string) => {
     setCurrentPath(path);
+    setCurrentFolderId(null);
     setSelectedItem(null);
   };
 
   const handleItemSelect = (item: StorageItem) => {
     if (item.type === "folder") {
       // Navigate to folder
-      setCurrentPath(item.path);
+      const newPath = item.path;
+      setCurrentPath(newPath);
+      setCurrentFolderId(item.id);
+      setSelectedItem(null);
       toast({
         title: "Folder Opened",
         description: `Opened ${item.name}`,
@@ -58,6 +135,10 @@ const Dashboard = () => {
       setSelectedItem(item);
     }
   };
+
+  const filteredItems = items.filter((item) =>
+    item.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   return (
     <SidebarProvider>
@@ -77,10 +158,16 @@ const Dashboard = () => {
                 viewMode={viewMode}
                 onViewModeChange={setViewMode}
                 onSearchChange={setSearchQuery}
+                onUploadClick={() => setUploadDialogOpen(true)}
+                onNewFolderClick={() => setCreateFolderDialogOpen(true)}
               />
               
               <div className="flex-1 overflow-y-auto p-4">
-                {filteredItems.length > 0 ? (
+                {loading ? (
+                  <div className="flex items-center justify-center h-full">
+                    <p className="text-gray-500">Loading...</p>
+                  </div>
+                ) : filteredItems.length > 0 ? (
                   viewMode === "grid" ? (
                     <FileGrid items={filteredItems} onItemSelect={handleItemSelect} />
                   ) : (
@@ -110,6 +197,22 @@ const Dashboard = () => {
           </div>
         </div>
       </div>
+      
+      <UploadDialog
+        isOpen={uploadDialogOpen}
+        onClose={() => setUploadDialogOpen(false)}
+        currentPath={currentPath}
+        currentFolderId={currentFolderId}
+        onUploadComplete={fetchItems}
+      />
+      
+      <CreateFolderDialog
+        isOpen={createFolderDialogOpen}
+        onClose={() => setCreateFolderDialogOpen(false)}
+        currentPath={currentPath}
+        parentId={currentFolderId}
+        onFolderCreated={fetchItems}
+      />
     </SidebarProvider>
   );
 };

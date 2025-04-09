@@ -9,7 +9,97 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      files: {
+        Row: {
+          created_at: string | null
+          folder_id: string | null
+          id: string
+          is_favorite: boolean | null
+          is_shared: boolean | null
+          mime_type: string
+          name: string
+          path: string
+          size: number
+          storage_path: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          folder_id?: string | null
+          id?: string
+          is_favorite?: boolean | null
+          is_shared?: boolean | null
+          mime_type: string
+          name: string
+          path: string
+          size: number
+          storage_path: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          folder_id?: string | null
+          id?: string
+          is_favorite?: boolean | null
+          is_shared?: boolean | null
+          mime_type?: string
+          name?: string
+          path?: string
+          size?: number
+          storage_path?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "files_folder_id_fkey"
+            columns: ["folder_id"]
+            isOneToOne: false
+            referencedRelation: "folders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      folders: {
+        Row: {
+          created_at: string | null
+          id: string
+          name: string
+          parent_id: string | null
+          path: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          name: string
+          parent_id?: string | null
+          path: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          name?: string
+          parent_id?: string | null
+          path?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "folders_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "folders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never

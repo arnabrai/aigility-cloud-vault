@@ -15,6 +15,8 @@ interface ContentHeaderProps {
   viewMode: "grid" | "list";
   onViewModeChange: (mode: "grid" | "list") => void;
   onSearchChange: (query: string) => void;
+  onUploadClick: () => void;
+  onNewFolderClick: () => void;
 }
 
 const ContentHeader: React.FC<ContentHeaderProps> = ({
@@ -22,20 +24,43 @@ const ContentHeader: React.FC<ContentHeaderProps> = ({
   viewMode,
   onViewModeChange,
   onSearchChange,
+  onUploadClick,
+  onNewFolderClick,
 }) => {
   const pathParts = currentPath.split("/").filter(Boolean);
-  const title = pathParts.length > 0 ? pathParts[pathParts.length - 1] : "My Files";
+  let title;
+  
+  if (pathParts.length === 0) {
+    title = "My Files";
+  } else if (currentPath === "/favorites") {
+    title = "Favorites";
+  } else if (currentPath === "/shared") {
+    title = "Shared";
+  } else if (currentPath === "/recent") {
+    title = "Recent";
+  } else {
+    title = pathParts[pathParts.length - 1];
+  }
 
   return (
     <div className="p-4 border-b">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold text-vault-blue">{title}</h1>
         <div className="flex space-x-2">
-          <Button variant="outline" className="bg-white">
+          <Button 
+            variant="outline" 
+            className="bg-white"
+            onClick={onNewFolderClick}
+            disabled={["/favorites", "/shared", "/recent"].includes(currentPath)}
+          >
             <FolderPlus className="w-4 h-4 mr-2" />
             New Folder
           </Button>
-          <Button className="bg-vault-teal hover:bg-vault-blue text-white">
+          <Button 
+            className="bg-vault-teal hover:bg-vault-blue text-white"
+            onClick={onUploadClick}
+            disabled={["/favorites", "/shared", "/recent"].includes(currentPath)}
+          >
             <Upload className="w-4 h-4 mr-2" />
             Upload
           </Button>
