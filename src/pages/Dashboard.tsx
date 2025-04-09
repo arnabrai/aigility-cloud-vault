@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import AppSidebar from "@/components/Sidebar";
 import ContentHeader from "@/components/ContentHeader";
@@ -78,7 +77,6 @@ const Dashboard = () => {
     }
   }, [currentPath, user]);
 
-  // Set up realtime subscriptions
   useEffect(() => {
     if (!user) return;
 
@@ -121,7 +119,6 @@ const Dashboard = () => {
 
   const handleItemSelect = (item: StorageItem) => {
     if (item.type === "folder") {
-      // Navigate to folder
       const newPath = item.path;
       setCurrentPath(newPath);
       setCurrentFolderId(item.id);
@@ -131,7 +128,6 @@ const Dashboard = () => {
         description: `Opened ${item.name}`,
       });
     } else {
-      // Select file for preview
       setSelectedItem(item);
     }
   };
@@ -169,9 +165,17 @@ const Dashboard = () => {
                   </div>
                 ) : filteredItems.length > 0 ? (
                   viewMode === "grid" ? (
-                    <FileGrid items={filteredItems} onItemSelect={handleItemSelect} />
+                    <FileGrid 
+                      items={filteredItems} 
+                      onItemSelect={handleItemSelect} 
+                      onUpdate={fetchItems}
+                    />
                   ) : (
-                    <FileList items={filteredItems} onItemSelect={handleItemSelect} />
+                    <FileList 
+                      items={filteredItems} 
+                      onItemSelect={handleItemSelect} 
+                      onUpdate={fetchItems}
+                    />
                   )
                 ) : (
                   <div className="flex flex-col items-center justify-center h-full text-gray-500">
@@ -191,6 +195,7 @@ const Dashboard = () => {
                 <FileDetails
                   item={selectedItem}
                   onClose={() => setSelectedItem(null)}
+                  onFileDeleted={fetchItems}
                 />
               </div>
             )}
