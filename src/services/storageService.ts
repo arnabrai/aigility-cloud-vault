@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { File, Folder } from "@/types/supabase";
 
@@ -54,11 +53,16 @@ export const uploadFile = async (
 
 export const downloadFile = async (file: File) => {
   try {
+    console.log("Downloading file with storage path:", file.storage_path);
+    
     const { data, error } = await supabase.storage
       .from(BUCKET_NAME)
       .download(file.storage_path);
 
-    if (error) throw error;
+    if (error) {
+      console.error("Supabase download error:", error);
+      throw error;
+    }
     
     return data;
   } catch (error) {

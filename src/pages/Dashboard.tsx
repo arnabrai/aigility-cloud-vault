@@ -10,7 +10,6 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { getFilesAndFolders, getFavoriteFiles, getSharedFiles, getRecentFiles, convertToStorageItem, convertFolderToStorageItem } from "@/services/storageService";
-import { File, Folder } from "@/types/supabase";
 import UploadDialog from "@/components/UploadDialog";
 import CreateFolderDialog from "@/components/CreateFolderDialog";
 import { supabase } from "@/integrations/supabase/client";
@@ -139,7 +138,11 @@ const Dashboard = () => {
   return (
     <SidebarProvider>
       <div className="flex h-screen w-full bg-gray-50">
-        <AppSidebar activePath={currentPath} onNavigate={handleNavigate} />
+        <AppSidebar 
+          activePath={currentPath} 
+          onNavigate={handleNavigate} 
+          onUploadClick={() => setUploadDialogOpen(true)} 
+        />
         
         <div className="flex-1 flex flex-col overflow-hidden">
           <div className="h-16 border-b bg-white flex items-center px-4">

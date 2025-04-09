@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { StorageItem, FileItem } from "@/types/files";
 import FileIcon from "./FileIcon";
@@ -45,13 +44,33 @@ const FileDetails: React.FC<FileDetailsProps> = ({ item, onClose, onFileDeleted 
   if (!item) return null;
 
   const isFile = "size" in item;
-  
-  // Format date
+
   const formatDate = (date: Date) => {
     return new Intl.DateTimeFormat("en-US", {
       dateStyle: "long",
       timeStyle: "short",
     }).format(date);
+  };
+
+  const convertItemToFileType = (): FileType => {
+    if (!isFile) throw new Error("Not a file item");
+    
+    const fileItem = item as FileItem;
+    
+    return {
+      id: fileItem.id,
+      name: fileItem.name,
+      path: fileItem.path,
+      size: fileItem.size,
+      mime_type: fileItem.mimeType,
+      folder_id: null,
+      storage_path: `${window.localStorage.getItem('supabase.auth.token')?.user?.id}/${fileItem.path ? fileItem.path + '/' : ''}${fileItem.name}`,
+      user_id: '',
+      is_favorite: fileItem.favorite,
+      is_shared: fileItem.shared,
+      created_at: '',
+      updated_at: ''
+    };
   };
 
   const handleDownload = async () => {
@@ -60,20 +79,7 @@ const FileDetails: React.FC<FileDetailsProps> = ({ item, onClose, onFileDeleted 
     setIsLoading(prev => ({ ...prev, download: true }));
     
     try {
-      const fileData = {
-        id: item.id,
-        name: item.name,
-        path: item.path,
-        size: item.size,
-        mime_type: item.mimeType,
-        folder_id: null,
-        storage_path: item.path.startsWith('/') ? item.path.slice(1) : item.path,
-        user_id: '',
-        is_favorite: item.favorite,
-        is_shared: item.shared,
-        created_at: '',
-        updated_at: ''
-      } as FileType;
+      const fileData = convertItemToFileType();
       
       const blob = await downloadFile(fileData);
       
@@ -94,6 +100,7 @@ const FileDetails: React.FC<FileDetailsProps> = ({ item, onClose, onFileDeleted 
         description: `${item.name} has been downloaded successfully`,
       });
     } catch (error: any) {
+      console.error("Download error:", error);
       toast({
         title: "Download failed",
         description: error.message || "Failed to download file",
@@ -110,20 +117,7 @@ const FileDetails: React.FC<FileDetailsProps> = ({ item, onClose, onFileDeleted 
     setIsLoading(prev => ({ ...prev, share: true }));
     
     try {
-      const fileData = {
-        id: item.id,
-        name: item.name,
-        path: item.path,
-        size: item.size,
-        mime_type: item.mimeType,
-        folder_id: null,
-        storage_path: item.path.startsWith('/') ? item.path.slice(1) : item.path,
-        user_id: '',
-        is_favorite: item.favorite,
-        is_shared: item.shared,
-        created_at: '',
-        updated_at: ''
-      } as FileType;
+      const fileData = convertItemToFileType();
       
       // Toggle shared status
       await toggleShared(fileData);
@@ -164,20 +158,7 @@ const FileDetails: React.FC<FileDetailsProps> = ({ item, onClose, onFileDeleted 
     setIsLoading(prev => ({ ...prev, delete: true }));
     
     try {
-      const fileData = {
-        id: item.id,
-        name: item.name,
-        path: item.path,
-        size: item.size,
-        mime_type: item.mimeType,
-        folder_id: null,
-        storage_path: item.path.startsWith('/') ? item.path.slice(1) : item.path,
-        user_id: '',
-        is_favorite: item.favorite,
-        is_shared: item.shared,
-        created_at: '',
-        updated_at: ''
-      } as FileType;
+      const fileData = convertItemToFileType();
       
       await deleteFile(fileData);
       
@@ -208,20 +189,7 @@ const FileDetails: React.FC<FileDetailsProps> = ({ item, onClose, onFileDeleted 
     setIsLoading(prev => ({ ...prev, favorite: true }));
     
     try {
-      const fileData = {
-        id: item.id,
-        name: item.name,
-        path: item.path,
-        size: item.size,
-        mime_type: item.mimeType,
-        folder_id: null,
-        storage_path: item.path.startsWith('/') ? item.path.slice(1) : item.path,
-        user_id: '',
-        is_favorite: item.favorite,
-        is_shared: item.shared,
-        created_at: '',
-        updated_at: ''
-      } as FileType;
+      const fileData = convertItemToFileType();
       
       await toggleFavorite(fileData);
       
@@ -240,7 +208,6 @@ const FileDetails: React.FC<FileDetailsProps> = ({ item, onClose, onFileDeleted 
     }
   };
 
-  // Handle file preview rendering
   const renderPreview = () => {
     if (!isFile) return <FileIcon fileType="folder" size={64} />;
     
@@ -256,7 +223,6 @@ const FileDetails: React.FC<FileDetailsProps> = ({ item, onClose, onFileDeleted 
       );
     }
     
-    // For document preview (PDF)
     if (fileItem.type === "document" && fileItem.mimeType === "application/pdf") {
       return (
         <iframe 
@@ -267,7 +233,6 @@ const FileDetails: React.FC<FileDetailsProps> = ({ item, onClose, onFileDeleted 
       );
     }
     
-    // For video preview
     if (fileItem.type === "video") {
       return (
         <video 
@@ -281,7 +246,6 @@ const FileDetails: React.FC<FileDetailsProps> = ({ item, onClose, onFileDeleted 
       );
     }
     
-    // For audio preview
     if (fileItem.type === "audio") {
       return (
         <audio className="w-full mt-4" controls>
@@ -291,7 +255,6 @@ const FileDetails: React.FC<FileDetailsProps> = ({ item, onClose, onFileDeleted 
       );
     }
     
-    // Default: show file icon
     return <FileIcon fileType={fileItem.type} size={64} />;
   };
 
