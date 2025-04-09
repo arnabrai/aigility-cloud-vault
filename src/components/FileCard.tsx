@@ -39,17 +39,20 @@ const FileCard: React.FC<FileCardProps> = ({ item, onSelect, onUpdate }) => {
   const convertToFileType = (): FileType => {
     if (!isFile) throw new Error("Not a file");
     
+    const fileItem = item as any;
+    const storagePath = `${fileItem.path ? fileItem.path + '/' : ''}${fileItem.name}`;
+    
     return {
-      id: item.id,
-      name: item.name,
-      path: item.path,
-      size: item.size,
-      mime_type: item.mimeType,
+      id: fileItem.id,
+      name: fileItem.name,
+      path: fileItem.path,
+      size: fileItem.size,
+      mime_type: fileItem.mimeType,
       folder_id: null,
-      storage_path: item.path.startsWith('/') ? item.path.slice(1) : item.path,
+      storage_path: storagePath,
       user_id: '',
-      is_favorite: item.favorite,
-      is_shared: item.shared,
+      is_favorite: fileItem.favorite,
+      is_shared: fileItem.shared,
       created_at: '',
       updated_at: ''
     };
@@ -133,6 +136,7 @@ const FileCard: React.FC<FileCardProps> = ({ item, onSelect, onUpdate }) => {
         description: `${item.name} has been downloaded successfully`,
       });
     } catch (error: any) {
+      console.error("Download error:", error);
       toast({
         title: "Download failed",
         description: error.message || "Failed to download file",

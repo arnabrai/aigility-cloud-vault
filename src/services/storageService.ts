@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { File, Folder } from "@/types/supabase";
 
@@ -55,9 +56,21 @@ export const downloadFile = async (file: File) => {
   try {
     console.log("Downloading file with storage path:", file.storage_path);
     
+    // Get user session
+    const { data: sessionData } = await supabase.auth.getSession();
+    const userId = sessionData.session?.user.id;
+    
+    if (!userId) {
+      throw new Error("User not authenticated");
+    }
+    
+    // Construct the full storage path
+    const fullStoragePath = `${userId}/${file.storage_path}`;
+    console.log("Full storage path for download:", fullStoragePath);
+    
     const { data, error } = await supabase.storage
       .from(BUCKET_NAME)
-      .download(file.storage_path);
+      .download(fullStoragePath);
 
     if (error) {
       console.error("Supabase download error:", error);

@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { StorageItem, FileItem } from "@/types/files";
 import FileIcon from "./FileIcon";
@@ -19,6 +20,7 @@ import { Separator } from "@/components/ui/separator";
 import { deleteFile, downloadFile, getFileUrl, toggleFavorite, toggleShared } from "@/services/storageService";
 import { useToast } from "@/hooks/use-toast";
 import { File as FileType } from "@/types/supabase";
+import { supabase } from "@/integrations/supabase/client";
 
 interface FileDetailsProps {
   item: StorageItem | null;
@@ -57,6 +59,10 @@ const FileDetails: React.FC<FileDetailsProps> = ({ item, onClose, onFileDeleted 
     
     const fileItem = item as FileItem;
     
+    // Create the storage path properly
+    const userId = supabase.auth.getSession().then(({ data }) => data.session?.user.id);
+    const storagePath = `${fileItem.path ? fileItem.path + '/' : ''}${fileItem.name}`;
+    
     return {
       id: fileItem.id,
       name: fileItem.name,
@@ -64,7 +70,7 @@ const FileDetails: React.FC<FileDetailsProps> = ({ item, onClose, onFileDeleted 
       size: fileItem.size,
       mime_type: fileItem.mimeType,
       folder_id: null,
-      storage_path: `${window.localStorage.getItem('supabase.auth.token')?.user?.id}/${fileItem.path ? fileItem.path + '/' : ''}${fileItem.name}`,
+      storage_path: storagePath,
       user_id: '',
       is_favorite: fileItem.favorite,
       is_shared: fileItem.shared,
